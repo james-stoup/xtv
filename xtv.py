@@ -18,49 +18,67 @@ class color:
    END = '\033[0m'
 
 
-args = sys.argv
-xml_file = args[1]
-
-tree = ET.parse(xml_file)
-root = tree.getroot()
 
 def print_children(child, offset):
-    #print '%s - %s' % (child.tag, child.attrib)
+   """ Recursivly print the data, adding an offset for every level """
+   kids = child.find('.')
 
-    kids = child.find('.')
+   # Only print the children if there are any
+   if len(list(kids)):
+      for k in kids:
+         print_string = ''
 
-    if len(list(kids)):
-        for k in kids:
-            print_string = ''
+         # make the main tags bold
+         if k.tag:
+            print_string += (color.BOLD  + k.tag + ':' + color.END + ' ')
 
-            if k.tag:
-                print_string += (color.BOLD  + k.tag + ':' + color.END + ' ')
+         # not everything has text and white space doesn't count
+         if k.text:
+            clean_text = k.text.lstrip()
+            if clean_text:
+               print_string += ('%s ' % clean_text)
 
-            if k.text:
-                clean_text = k.text.lstrip()
-                if clean_text:
-                    print_string += ('%s ' % clean_text)
+         # the attributes are almost always going to be a map
+         if k.attrib:
+            if hasattr(k.attrib, "__len__"):
+               for key, value in k.attrib.items():
+                  tmp_str = '(' + key + ': ' + value + ')'
+                  tmp_len = len(tmp_str) + offset + 4
+                  att_str = tmp_str.rjust(tmp_len)
+                  print_string += '\n' + att_str
+               else:
+                  # but just in case...
+                  print_string += ('%s ' % k.attrib)
 
-            if k.attrib:
-                if hasattr(k.attrib, "__len__"):
-                    for key, value in k.attrib.items():
-                        tmp_str = '(' + key + ': ' + value + ')'
-                        tmp_len = len(tmp_str) + offset + 4
-                        att_str = tmp_str.rjust(tmp_len)
-                        print_string += '\n' + att_str
-                else:
-                    print_string += ('%s ' % k.attrib)
+         # add to the offset each level down we go
+         str_len = len(print_string) + offset
+         new_string = print_string.rjust(str_len)
+         print new_string
 
-            str_len = len(print_string) + offset
-            new_string = print_string.rjust(str_len)
-            print new_string
-
-            print_children(k, offset + 4)
+         # woo hoo, recursion
+         print_children(k, offset + 4)
 
 
-print color.RED + color.BOLD + '=== ' + root.tag + ' ===' + color.END
+def main():
+   """ Parse cli args and print the cleaned up XML """
 
-for child in root:
-    print color.BLUE + color.BOLD + child.tag + color.END
-    print_children(child, 2)
-    print ''
+   # yeah, need to actually handle args...
+   args = sys.argv
+   xml_file = args[1]
+
+   # turn the file into a tree
+   tree = ET.parse(xml_file)
+   root = tree.getroot()
+
+   # I like the root node to be red, but I suppose I could add a no-color flag
+   print color.RED + color.BOLD + '=== ' + root.tag + ' ===' + color.END
+   for child in root:
+      # maybe change the blue to something else? meh.
+      print color.BLUE + color.BOLD + child.tag + color.END
+      print_children(child, 2)
+      print ''
+
+
+
+if __name__ == '__main__':
+   main()
