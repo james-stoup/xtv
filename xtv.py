@@ -13,6 +13,7 @@ class color:
    GREEN = '\033[92m'
    YELLOW = '\033[93m'
    RED = '\033[91m'
+   LIGHT_GRAY_BG = '\033[47m'
    BOLD = '\033[1m'
    UNDERLINE = '\033[4m'
    END = '\033[0m'
@@ -46,9 +47,6 @@ def print_children(child, offset):
                   tmp_len = len(tmp_str) + offset + 4
                   att_str = tmp_str.rjust(tmp_len)
                   print_string += '\n' + att_str
-               else:
-                  # but just in case...
-                  print_string += ('%s ' % k.attrib)
 
          # add to the offset each level down we go
          str_len = len(print_string) + offset
@@ -71,11 +69,19 @@ def main():
    root = tree.getroot()
 
    # I like the root node to be red, but I suppose I could add a no-color flag
-   print color.RED + color.BOLD + '=== ' + root.tag + ' ===' + color.END
+   root_str = '=== ' + root.tag + ' ==='
+   root_str_len = len(root_str)
+   header_str = ''
+   for x in range(root_str_len):
+      header_str += '='
+
+   print header_str
+   print color.BLACK + color.BOLD + root_str + color.END
+   print header_str
+
    for child in root:
-      # maybe change the blue to something else? meh.
-      print color.BLUE + color.BOLD + child.tag + color.END
-      print_children(child, 2)
+      print color.LIGHT_GRAY_BG + color.BOLD + child.tag + color.END
+      print_children(child, 4)
       print ''
 
 
