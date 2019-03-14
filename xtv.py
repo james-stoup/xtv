@@ -1,26 +1,44 @@
 #!/usr/bin/env python
 
+# An XML Terminal Viewer
+# Author: James Stoup
+# Date: 14 MAR 2019
+# This should be backwards compatible
+# all the way to python 2.7
+
 import sys
 import csv
 import xml.etree.ElementTree as ET
+import optparse
+import time
+import os
 
+
+# Keep some colors around in case we add more later
 class color:
-   BLACK = '\033[30m'
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
+   BLACK         = '\033[30m'
+   BLUE          = '\033[94m'
+   CYAN          = '\033[96m'
+   DARK_CYAN     = '\033[36m'
+   GREEN         = '\033[92m'
    LIGHT_GRAY_BG = '\033[47m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
+   PURPLE        = '\033[95m'
+   RED           = '\033[91m'
+   YELLOW        = '\033[93m'
 
+   UNDERLINE     = '\033[4m'
+   BOLD          = '\033[1m'
+   END           = '\033[0m'
 
+   
+# Helper class used only for printing the help examples
+class MyParser(optparse.OptionParser):
+    def format_epilog(self, formatter):
+        return self.epilog
 
-def print_children(child, offset):
+     
+
+def print_children(child, offset, plain):
    """ Recursivly print the data, adding an offset for every level """
    kids = child.find('.')
 
@@ -31,7 +49,10 @@ def print_children(child, offset):
 
          # make the main tags bold
          if k.tag:
-            print_string += (color.BOLD  + k.tag + ':' + color.END + ' ')
+            if plain:
+               print_string += (k.tag + ': ')
+            else:
+               print_string += (color.BOLD  + k.tag + ':' + color.END + ' ')
 
          # not everything has text and white space doesn't count
          if k.text:
@@ -54,21 +75,59 @@ def print_children(child, offset):
          print new_string
 
          # woo hoo, recursion
-         print_children(k, offset + 4)
+         print_children(k, offset + 4, plain)
 
 
+
+def setup_parser():
+   """ Setup the option & arguement parser """
+   epilog_str = """
+Examples:
+
+  ### View an xml file in a human readable way
+  ./xtv.py <xml-file-to-read>
+
+"""
+
+   parser = MyParser(epilog = epilog_str,
+                     usage='usage: %prog [options]',
+                     version='%prog 1.0.0')
+   
+   # import flag
+   parser.add_option('-p', '--plain',
+                     action='store_true',
+                     dest='plain_view_flag',
+                     default=False,
+                     help='Display output with no additional formatting or color')
+
+   (options, args) = parser.parse_args()
+
+   return (options, args)
+
+         
 def main():
-   """ Parse cli args and print the cleaned up XML """
+   """ Print the cleaned up XML """
 
-   # yeah, need to actually handle args...
-   args = sys.argv
-   xml_file = args[1]
+   # This shoudl be stupid simple as you only pass in one file
+   (opts, args) = setup_parser()
+   if len(args) < 1:
+      print 'YOU DONE MESSED UP A-A-RON! (must supply an xml file to parse)'
+      sys.exit()
+   elif len(args) > 1:
+      print 'YOU DONE MESSED UP A-A-RON! (too many arguements passed in)'
+      sys.exit()
+
+   # If they don't want fancy printing turn it off
+   plain = False
+   if opts.plain_view_flag:
+      plain = True
 
    # turn the file into a tree
+   xml_file = args[0]
    tree = ET.parse(xml_file)
    root = tree.getroot()
 
-   # I like the root node to be red, but I suppose I could add a no-color flag
+   # Print a nice header showing the root node
    root_str = '=== ' + root.tag + ' ==='
    root_str_len = len(root_str)
    header_str = ''
@@ -76,12 +135,18 @@ def main():
       header_str += '='
 
    print header_str
-   print color.BLACK + color.BOLD + root_str + color.END
+   if plain:
+      print root_str
+   else:
+      print color.BOLD + root_str + color.END
    print header_str
 
    for child in root:
-      print color.LIGHT_GRAY_BG + color.BOLD + child.tag + color.END
-      print_children(child, 4)
+      if plain:
+         print child.tag
+      else:
+         print color.LIGHT_GRAY_BG + color.BOLD + child.tag + color.END
+      print_children(child, 4, plain)
       print ''
 
 
